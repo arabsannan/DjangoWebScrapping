@@ -1,0 +1,24 @@
+# Ignore virtual environment
+venv/
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore compiled Python files
+*.pyc
+
+# Ignore log files
+*.log
+
+# Ignore database files
+*.sqlite3
+
+# Ignore sensitive information
+secret.txt
+
+# Ignore generated static files
+static/
+
+# Ignore media uploads
+media/

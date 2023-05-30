@@ -55,7 +55,7 @@ def home_view(request):
             the_dict_list = []
             extra_count = 5 * count
 
-            for tweet in tweepy.Cursor(api.search, q=country_name).items(extra_count):
+            for tweet in tweepy.Cursor(api.search_tweets, q=country_name).items(extra_count):
                 if 'RT' in tweet.text:  # my update
                     pass
                 else:
@@ -63,7 +63,8 @@ def home_view(request):
                     t_text = tweet.text
                     t_user = tweet.user.name
 
-                    the_dict_list.append({'time': t_timestamp, 'user': t_user, 'tweet': t_text})
+                    the_dict_list.append(
+                        {'time': t_timestamp, 'user': t_user, 'tweet': t_text})
                     # if the captured tweets are equal to the count specified continue
                     if len(the_dict_list) == count:
                         print(len(the_dict_list))
@@ -77,25 +78,25 @@ def home_view(request):
 
             json_file = open(f'{__dir}/{country_name}.json', 'w')
 
-            j = json.dumps(the_dict_list, indent=4, cls=ExtendedEncoderAllFields, ensure_ascii=True)
+            j = json.dumps(the_dict_list, indent=4,
+                           cls=ExtendedEncoderAllFields, ensure_ascii=True)
             json_file.write(j)
 
             request.session['country_name'] = request.POST['country_name']
-            print('Done!')
-            # return HttpResponseRedirect(reverse('home'))
+
             return redirect('read/')
+
         context = {'form': form}
-    return render(request, 'capture/capture_home.html')
+    return render(request, 'capture/capture_home.html', context)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# read the generated tweet
 def read_view(request):
-    # country_name = request.POST.get('country_name')
     url = request.session.get('country_name')
     with open(f'./Tweets/{url}.json', 'r') as file:
         data = json.load(file)
     context = {'d': data, 'url': url}
     return render(request, 'capture/capture_read.html', context, content_type='text/html')
-    # content_type='application' downloads page
