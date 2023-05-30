@@ -1,10 +1,5 @@
-from datetime import datetime
-from django.http import FileResponse, HttpResponse
-from django.shortcuts import render, HttpResponseRedirect, redirect
-from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Model
-from django.db.models.fields.files import ImageFieldFile
-from django.forms import model_to_dict
+from django.http import FileResponse
+from django.shortcuts import render, redirect
 from .forms import TweetGeoCount
 from pathlib import Path
 import tweepy
@@ -26,24 +21,6 @@ auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth, wait_on_rate_limit=True)
 
 
-class ExtendedEncoderAllFields(DjangoJSONEncoder):
-
-    def default(self, o):
-        if isinstance(o, ImageFieldFile):
-            try:
-                mypath = o.path
-            except:
-                return ''
-            else:
-                return mypath
-        # this will either recursively return all attributes of the object or return just the id
-        elif isinstance(o, Model):
-            return model_to_dict(o)
-            # return o.id
-
-        return super().default(o)
-
-
 def home(request):
     if request.method == 'POST':
         form = TweetGeoCount(request.POST or None)
@@ -52,38 +29,26 @@ def home(request):
             country_name = form.cleaned_data['country_name']
             download_checkbox = request.POST.get('download_checkbox') == 'on'
 
-            # initialize variables
+            # initialize tweets list
             tweets = []
-            COUNT_INCREMENT = 4
-            increased_count = COUNT_INCREMENT * count
 
-            for tweet in tweepy.Cursor(api.search_tweets, q=country_name).items(increased_count):
-                # remove retweets
-                if 'RT' in tweet.text:
-                    pass
-                else:
-                    tweet_timestamp = tweet.created_at
-                    tweet_text = tweet.text
-                    tweet_user = tweet.user.name
+            for tweet in tweepy.Cursor(api.search_tweets, q='country_name -filter:retweets').items(count):
+                tweets.append({
+                    # format date
+                    'time': tweet.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    'user': tweet.user.name,
+                    'tweet': tweet.text
+                })
 
-                    # format time
-                    tweet_timestamp = tweet_timestamp.strftime(
-                        '%Y-%m-%d %H:%M:%S')
+            directory = "./Tweets"
+            if not os.path.exists(directory):
+                # creates the Tweets directory if it doesn't exist
+                os.mkdir(directory)
 
-                    # if the items in the tweets list are not equal to the count specified continue
-                    if len(tweets) != count:
-                        tweets.append(
-                            {'time': tweet_timestamp, 'user': tweet_user, 'tweet': tweet_text})
-
-            __dir = "./Tweets"
-            if not os.path.exists(__dir):
-                os.mkdir(__dir)  # creates Tweets directory
-
-            # create json file and dump contents in tweets list 
-            json_file = open(f'{__dir}/{country_name}.json', 'w')
-            j = json.dumps(tweets, indent=4,
-                           cls=ExtendedEncoderAllFields, ensure_ascii=True)
-            json_file.write(j)
+            # Create JSON file and dump contents of tweets list
+            file_path = os.path.join(directory, f'{country_name}.json')
+            with open(file_path, 'w') as json_file:
+                json.dump(tweets, json_file, indent=4)
 
             # set session values
             request.session['country_name'] = request.POST['country_name']
