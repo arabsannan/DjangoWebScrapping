@@ -13,25 +13,29 @@
                 <h5 class="card-title">Capture your Tweets here</h5>
 
                 <form method="post" onsubmit="btn2.disabled = true;" action=""> {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ form.non_field_errors|striptags }}
+                    </div>
+                    {% endif %}
                     <div class="form-group">
                         <label>Enter country name</label>
                         <select class="form-control selectpicker countrypicker" id="name_country"
-                                name="country_name"></select>
+                            name="country_name"></select>
                     </div>
                     <div class="form-group">
                         <label>Enter number of tweets</label>
-                        <input class="form-control" name="count" id="count" type="number" value="100">
+                        <input class="form-control" name="count" id="count" type="number" value="10">
                         <small class="form-text text-muted" id="tweetHelp">NB: Number of tweets must be between 100 and
                             1000</small>
                     </div>
                     <div class="form-group form-check">
-                        <input class="form-check-input" id="exampleCheck1" type="checkbox">
+                        <input class="form-check-input" id="exampleCheck1" type="checkbox" name="download_checkbox">
                         <label class="form-check-label" for="exampleCheck1"> Make tweets available for
                             download</label>
                     </div>
-<!--                    <button class="btn btn-primary" type="submit" id="btn1" value="Capture">Capture</button>-->
-
-                    <button type="submit" onclick="MyCustomFunction()" id="loadbtn" name="btn2" class="btn btn-primary">Capture</button>
+                    <button type="submit" onclick="MyCustomFunction()" id="loadbtn" name="btn2"
+                        class="btn btn-primary">Capture</button>
                 </form>
 
             </div>
@@ -41,4 +45,4 @@
 
 {%endblock%}
 
-</html> 
+</html>

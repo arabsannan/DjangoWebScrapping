@@ -1,21 +1,24 @@
-from django.http import HttpResponse
-from django.shortcuts import render, HttpResponseRedirect, reverse, redirect
-import tweepy
-from .forms import TweetGeoCount
-import os
-import json
-import pprint
-from pathlib import Path
-
+from datetime import datetime
+from django.http import FileResponse, HttpResponse
+from django.shortcuts import render, HttpResponseRedirect, redirect
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Model
 from django.db.models.fields.files import ImageFieldFile
 from django.forms import model_to_dict
+from .forms import TweetGeoCount
+from pathlib import Path
+import tweepy
+import os
+from dotenv import load_dotenv
+import json
 
-api_key = 'UalRAOtxgNemAKjlhRsE1KoVc'
-api_secret_key = '971DKlrk0n1I4LS3XxxL8urTu6izMFAYEXiDOetp1QyJP6CluD'
-access_token = '1328734801747173376-T6O51qLNFUBWpSJv1ciGkivxmYnTIO'
-access_token_secret = 'Ye3nc7GKqIjGANcrDFJGyBjNTIuaUGw86JD9l9r4oMF67'
+load_dotenv()  # Load environment variables from .env file
+
+# Auth
+api_key = os.getenv('API_KEY')
+api_secret_key = os.getenv('API_SECRET_KEY')
+access_token = os.getenv('ACCESS_TOKEN')
+access_token_secret = os.getenv('ACCESS_TOKEN_SECRET')
 
 # setting up twitter APIs
 auth = tweepy.OAuthHandler(api_key, api_secret_key)
@@ -41,62 +44,85 @@ class ExtendedEncoderAllFields(DjangoJSONEncoder):
         return super().default(o)
 
 
-def home_view(request):
+def home(request):
     if request.method == 'POST':
         form = TweetGeoCount(request.POST or None)
         if form.is_valid():
             count = form.cleaned_data['count']
             country_name = form.cleaned_data['country_name']
+            download_checkbox = request.POST.get('download_checkbox') == 'on'
 
-            print(form.cleaned_data)
+            # initialize variables
+            tweets = []
+            COUNT_INCREMENT = 4
+            increased_count = COUNT_INCREMENT * count
 
-            print(f'Capturing tweets from {country_name}...')
-
-            the_dict_list = []
-            extra_count = 5 * count
-
-            for tweet in tweepy.Cursor(api.search_tweets, q=country_name).items(extra_count):
-                if 'RT' in tweet.text:  # my update
+            for tweet in tweepy.Cursor(api.search_tweets, q=country_name).items(increased_count):
+                # remove retweets
+                if 'RT' in tweet.text:
                     pass
                 else:
-                    t_timestamp = tweet.created_at
-                    t_text = tweet.text
-                    t_user = tweet.user.name
+                    tweet_timestamp = tweet.created_at
+                    tweet_text = tweet.text
+                    tweet_user = tweet.user.name
 
-                    the_dict_list.append(
-                        {'time': t_timestamp, 'user': t_user, 'tweet': t_text})
-                    # if the captured tweets are equal to the count specified continue
-                    if len(the_dict_list) == count:
-                        print(len(the_dict_list))
-                        break
+                    # format time
+                    tweet_timestamp = tweet_timestamp.strftime(
+                        '%Y-%m-%d %H:%M:%S')
+
+                    # if the items in the tweets list are not equal to the count specified continue
+                    if len(tweets) != count:
+                        tweets.append(
+                            {'time': tweet_timestamp, 'user': tweet_user, 'tweet': tweet_text})
 
             __dir = "./Tweets"
-            if os.path.exists(__dir):
-                pass
-            else:
+            if not os.path.exists(__dir):
                 os.mkdir(__dir)  # creates Tweets directory
 
+            # create json file and dump contents in tweets list 
             json_file = open(f'{__dir}/{country_name}.json', 'w')
-
-            j = json.dumps(the_dict_list, indent=4,
+            j = json.dumps(tweets, indent=4,
                            cls=ExtendedEncoderAllFields, ensure_ascii=True)
             json_file.write(j)
 
+            # set session values
             request.session['country_name'] = request.POST['country_name']
+            request.session['download_checkbox'] = download_checkbox
 
             return redirect('read/')
-
+        else:
+            context = {'form': form}
+    else:
+        form = TweetGeoCount()
         context = {'form': form}
-    return render(request, 'capture/capture_home.html', context)
+    return render(request, 'capture/home.html', context)
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-# read the generated tweet
-def read_view(request):
-    url = request.session.get('country_name')
-    with open(f'./Tweets/{url}.json', 'r') as file:
+def read_tweets(request):
+    country_name = request.session.get('country_name')
+    download_checkbox = request.session.get('download_checkbox')
+    with open(f'./Tweets/{country_name}.json', 'r') as file:
         data = json.load(file)
-    context = {'d': data, 'url': url}
-    return render(request, 'capture/capture_read.html', context, content_type='text/html')
+    context = {
+        'tweets': data,
+        'country_name': country_name,
+        'download_checkbox': download_checkbox
+    }
+    return render(request, 'capture/read_tweets.html', context, content_type='text/html')
+
+
+def download_tweets_file(request, country_name):
+    # Generate the file path using the file's stored path
+    file_path = f'./Tweets/{country_name}.json'
+
+    # Open the file and create a response with appropriate headers
+    file = open(file_path, 'rb')
+    response = FileResponse(file)
+
+    # Set the content type header based on the file's MIME type
+    response['Content-Type'] = 'application/json'
+
+    # Set the Content-Disposition header to force download
+    response['Content-Disposition'] = f'attachment; filename="{country_name}.json"'
+
+    return response

@@ -1,0 +1,55 @@
+{%extends 'base.html'%}
+
+{%block content%}
+
+<title>{{country_name}}</title>
+{%if tweets%}
+<div class="container">
+    <div class="row align-items-center">
+        <div class="col-4">
+            <ul class="nav">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'capture:home' %}">Back to Home</a>
+                </li>
+            </ul>
+        </div>
+        <div class="col-4">
+            <h2 class="main-title m-3 text-center">{{country_name}}</h2>
+        </div>
+        {%if download_checkbox%}
+        <div class="col-4">
+            <a class="nav-link active text-right"
+                href="{% url 'capture:download_tweets_file' country_name=country_name %}">Download Tweets</a>
+        </div>
+        {%endif%}
+    </div>
+
+    <div>
+        <table class="table table-bordered table-dark">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Time</th>
+                    <th scope="col">User</th>
+                    <th scope="col">Tweet</th>
+                </tr>
+            </thead>
+
+            {% for tweet in tweets %}
+            <tbody>
+                <tr>
+                    <th scope="row">{{forloop.counter}}</th>
+                    <td>{{tweet.time}}</td>
+                    <td>{{tweet.user}}</td>
+                    <td>{{tweet.tweet}}</td>
+                </tr>
+            </tbody>
+            {% endfor %}
+        </table>
+    </div>
+
+
+</div>
+{%endif%}
+
+{%endblock%}

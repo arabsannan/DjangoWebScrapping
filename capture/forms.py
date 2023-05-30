@@ -6,10 +6,11 @@ class TweetGeoCount(forms.Form):
     count = forms.IntegerField()
     country_name = forms.CharField(max_length=150)
 
-    def clean_count(self):
-        count = self.cleaned_data['count']
-        if count < 10 or count > 100:
+    def clean(self):
+        cleaned_data = super().clean()
+        count = cleaned_data.get('count')
+        if count is not None and (count < 10 or count > 100):
             raise ValidationError('Enter a count between 10 and 100')
-        return count
+        return cleaned_data
   
 
