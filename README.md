@@ -19,7 +19,7 @@ Before getting started, please ensure that you have Python 3 installed on your s
 3. Create and activate a virtual environment (Windows):
    ```bash
    python -m venv venv
-   venv/Scripts/Activate
+   venv/Scripts/activate
    ```
 4. Install the required packages:
    ```bash
@@ -64,4 +64,4 @@ Before getting started, please ensure that you have Python 3 installed on your s
    
 
 Now you're ready to use Tweets Capture to generate tweets about any country of your choice. Enjoy exploring!
-> **_NOTE:_** Please note that the developers need to create a Twitter Developer Account and obtain their own API credentials from the Twitter Developer Portal.
+> **NOTE:** You need to create a Twitter Developer Account and obtain your own API credentials from the Twitter Developer Portal.
